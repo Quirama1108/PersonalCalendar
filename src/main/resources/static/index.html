@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Personal Calendar</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f6f8;
+            margin: 0;
+            padding: 30px;
+            color: #222;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: auto;
+        }
+
+        h1 {
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+        }
+
+        button {
+            border: none;
+            padding: 10px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            background: #222;
+            color: white;
+        }
+
+        button:hover {
+            opacity: .85;
+        }
+
+        .danger {
+            background: #b3261e;
+        }
+
+        .event {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .event:last-child {
+            border-bottom: none;
+        }
+
+        .event-title {
+            font-weight: bold;
+        }
+
+        .time {
+            color: #666;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+
+        .slot {
+            padding: 10px;
+            background: #f0f4f8;
+            margin-top: 8px;
+            border-radius: 6px;
+        }
+
+        #message {
+            margin-top: 15px;
+            font-weight: bold;
+        }
+
+        .error {
+            color: #b3261e;
+        }
+
+        .success {
+            color: #157347;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h1>Personal Calendar</h1>
+    <div class="subtitle">
+        Calendar scheduling demo
+    </div>
+
+    <!-- CREATE EVENT -->
+
+    <div class="card">
+
+        <h2>Agendar evento</h2>
+
+        <div class="grid">
+
+            <div>
+                <label>Título</label>
+                <input id="title" placeholder="Reunión">
+            </div>
+
+            <div>
+                <label>Inicio</label>
+                <input id="start" type="datetime-local">
+            </div>
+
+            <div>
+                <label>Fin</label>
+                <input id="end" type="datetime-local">
+            </div>
+
+        </div>
+
+        <br>
+
+        <button onclick="createEvent()">
+            Agendar
+        </button>
+
+        <div id="message"></div>
+
+    </div>
+
+
+    <!-- EVENTS -->
+
+    <div class="card">
+
+        <h2>Eventos</h2>
+
+        <div class="grid">
+
+            <div>
+                <label>Desde</label>
+                <input id="from" type="datetime-local">
+            </div>
+
+            <div>
+                <label>Hasta</label>
+                <input id="to" type="datetime-local">
+            </div>
+
+        </div>
+
+        <br>
+
+        <button onclick="loadEvents()">
+            Consultar
+        </button>
+
+        <div id="events"></div>
+
+    </div>
+
+
+    <!-- AVAILABILITY -->
+
+    <div class="card">
+
+        <h2>Consultar disponibilidad</h2>
+
+        <div class="grid">
+
+            <div>
+                <label>Fecha</label>
+                <input id="availabilityDate" type="date">
+            </div>
+
+            <div>
+                <label>Duración (minutos)</label>
+                <input
+                        id="duration"
+                        type="number"
+                        min="1"
+                        value="60"
+                >
+            </div>
+
+        </div>
+
+        <br>
+
+        <button onclick="loadAvailability()">
+            Buscar disponibilidad
+        </button>
+
+        <div id="availability"></div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+    const OFFSET = "-05:00";
+
+    function toOffsetDateTime(value) {
+
+        if (!value) {
+            return null;
+        }
+
+        return value + ":00" + OFFSET;
+    }
+
+
+    async function createEvent() {
+
+        const message = document.getElementById("message");
+
+        message.textContent = "";
+
+        const body = {
+            title: document.getElementById("title").value,
+            start: toOffsetDateTime(
+                document.getElementById("start").value
+            ),
+            end: toOffsetDateTime(
+                document.getElementById("end").value
+            )
+        };
+
+        try {
+
+            const response = await fetch("/events", {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify(body)
+            });
+
+
+            if (!response.ok) {
+
+                const error = await response.json();
+
+                message.className = "error";
+                message.textContent = error.message;
+
+                return;
+            }
+
+
+            const event = await response.json();
+
+            message.className = "success";
+
+            message.textContent =
+                "Evento creado: " + event.title;
+
+
+            await loadEvents();
+
+        } catch (error) {
+
+            message.className = "error";
+
+            message.textContent =
+                "No fue posible conectar con el servidor.";
+        }
+    }
+
+
+    async function loadEvents() {
+
+        const from =
+            toOffsetDateTime(
+                document.getElementById("from").value
+            );
+
+        const to =
+            toOffsetDateTime(
+                document.getElementById("to").value
+            );
+
+
+        if (!from || !to) {
+            return;
+        }
+
+
+        const url =
+            `/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
+
+
+        const response = await fetch(url);
+
+        const events = await response.json();
+
+        const container =
+            document.getElementById("events");
+
+
+        container.innerHTML = "";
+
+
+        if (events.length === 0) {
+
+            container.innerHTML =
+                "<p>No hay eventos en este rango.</p>";
+
+            return;
+        }
+
+
+        events.forEach(event => {
+
+            const element =
+                document.createElement("div");
+
+            element.className = "event";
+
+            element.innerHTML = `
+
+                <div>
+
+                    <div class="event-title">
+                        ${event.title}
+                    </div>
+
+                    <div class="time">
+                        ${formatDate(event.start)}
+                        →
+                        ${formatDate(event.end)}
+                    </div>
+
+                </div>
+
+                <button
+                    class="danger"
+                    onclick="deleteEvent('${event.id}')"
+                >
+                    Eliminar
+                </button>
+
+            `;
+
+            container.appendChild(element);
+        });
+    }
+
+
+    async function deleteEvent(id) {
+
+        const response =
+            await fetch(`/events/${id}`, {
+                method: "DELETE"
+            });
+
+
+        if (response.ok) {
+
+            await loadEvents();
+
+        } else {
+
+            alert("No fue posible eliminar el evento.");
+        }
+    }
+
+
+    async function loadAvailability() {
+
+        const date =
+            document.getElementById(
+                "availabilityDate"
+            ).value;
+
+        const duration =
+            document.getElementById(
+                "duration"
+            ).value;
+
+
+        const response = await fetch(
+            `/availability?date=${date}&durationMinutes=${duration}`
+        );
+
+
+        const slots = await response.json();
+
+        const container =
+            document.getElementById("availability");
+
+
+        container.innerHTML = "";
+
+
+        if (slots.length === 0) {
+
+            container.innerHTML =
+                "<p>No hay disponibilidad.</p>";
+
+            return;
+        }
+
+
+        slots.forEach(slot => {
+
+            const element =
+                document.createElement("div");
+
+            element.className = "slot";
+
+            element.textContent =
+                `${formatDate(slot.start)} → ${formatDate(slot.end)}`;
+
+            container.appendChild(element);
+        });
+    }
+
+
+    function formatDate(value) {
+
+        return new Date(value)
+            .toLocaleString(
+                "es-CO",
+                {
+                    dateStyle: "short",
+                    timeStyle: "short"
+                }
+            );
+    }
+
+
+    function initializeDates() {
+
+        const date = "2026-08-24";
+
+        document.getElementById("start").value =
+            `${date}T09:00`;
+
+        document.getElementById("end").value =
+            `${date}T10:00`;
+
+        document.getElementById("from").value =
+            `${date}T09:00`;
+
+        document.getElementById("to").value =
+            `${date}T17:00`;
+
+        document.getElementById(
+            "availabilityDate"
+        ).value = date;
+    }
+
+
+    initializeDates();
+
+</script>
+
+</body>
+</html>

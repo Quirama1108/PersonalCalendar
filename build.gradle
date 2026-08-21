@@ -1,0 +1,42 @@
+plugins {
+    id 'java'
+    id 'org.springframework.boot' version '4.1.0'
+    id 'io.spring.dependency-management' version '1.1.7'
+    id 'me.champeau.jmh' version '0.7.3'
+}
+
+group = 'com.calendar'
+version = '1.0.0'
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(21)
+    }
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    // API REST
+    implementation 'org.springframework.boot:spring-boot-starter-web'
+
+    // Persistencia
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+
+    // H2
+    runtimeOnly 'com.h2database:h2'
+
+    // Testing general
+    testImplementation 'org.springframework.boot:spring-boot-starter-test'
+
+    // Testing MVC / MockMvc
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+
+    implementation 'org.springframework.boot:spring-boot-h2console'
+}
+
+test {
+    useJUnitPlatform()
+}
