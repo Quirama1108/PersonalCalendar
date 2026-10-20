@@ -152,14 +152,13 @@ class ScheduleEventUseCaseTest {
                 new SchedulingPolicy()
         );
 
+        Instant start = Instant.parse("2026-08-24T14:00:00Z");
+        Instant end = Instant.parse("2026-08-24T15:00:00Z");
+
         // Act + Assert
         assertThrows(
                 IllegalArgumentException.class,
-                () -> useCase.execute(
-                        " ",
-                        Instant.parse("2026-08-24T14:00:00Z"),
-                        Instant.parse("2026-08-24T15:00:00Z")
-                )
+                () -> useCase.execute(" ", start, end)
         );
         assertTrue(repository.findAll().isEmpty());
     }

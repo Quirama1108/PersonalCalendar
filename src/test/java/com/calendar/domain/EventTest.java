@@ -43,12 +43,14 @@ class EventTest {
         Instant date =
                 Instant.parse("2026-08-24T14:00:00Z");
 
+        UUID id = UUID.randomUUID();
+
         // Act
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
                         () -> new Event(
-                                UUID.randomUUID(),
+                                id,
                                 "Invalid event",
                                 date,
                                 date
@@ -72,12 +74,14 @@ class EventTest {
         Instant end =
                 Instant.parse("2026-08-24T14:00:00Z");
 
+        UUID id = UUID.randomUUID();
+
         // Act
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
                         () -> new Event(
-                                UUID.randomUUID(),
+                                id,
                                 "Invalid event",
                                 start,
                                 end
@@ -147,11 +151,14 @@ class EventTest {
     @Test
     void shouldRejectBlankOrMissingTitle() {
 
+        // Arrange
+        UUID id = UUID.randomUUID();
+
         // Act + Assert
         assertThrows(IllegalArgumentException.class,
-                () -> new Event(UUID.randomUUID(), "   ", START, END));
+                () -> new Event(id, "   ", START, END));
         assertThrows(IllegalArgumentException.class,
-                () -> new Event(UUID.randomUUID(), null, START, END));
+                () -> new Event(id, null, START, END));
     }
 
     @Test
@@ -177,18 +184,15 @@ class EventTest {
         // Arrange
         String longTitle = "a".repeat(Event.MAX_TITLE_LENGTH + 1);
         String longDescription = "a".repeat(Event.MAX_DESCRIPTION_LENGTH + 1);
+        String maxTitle = "a".repeat(Event.MAX_TITLE_LENGTH);
+        String maxDescription = "a".repeat(Event.MAX_DESCRIPTION_LENGTH);
+        UUID id = UUID.randomUUID();
 
         // Act + Assert
         assertThrows(IllegalArgumentException.class,
-                () -> new Event(UUID.randomUUID(), longTitle, START, END));
+                () -> new Event(id, longTitle, START, END));
         assertThrows(IllegalArgumentException.class,
-                () -> new Event(UUID.randomUUID(), "Demo", longDescription, START, END));
-        assertDoesNotThrow(() -> new Event(
-                UUID.randomUUID(),
-                "a".repeat(Event.MAX_TITLE_LENGTH),
-                "a".repeat(Event.MAX_DESCRIPTION_LENGTH),
-                START,
-                END
-        ));
+                () -> new Event(id, "Demo", longDescription, START, END));
+        assertDoesNotThrow(() -> new Event(id, maxTitle, maxDescription, START, END));
     }
 }

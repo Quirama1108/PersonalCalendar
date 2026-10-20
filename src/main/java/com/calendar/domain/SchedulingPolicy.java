@@ -23,12 +23,12 @@ public class SchedulingPolicy {
 
     public Optional<TimeSlot> availabilityFor(LocalDate date) {
 
-        if (date.getDayOfWeek() == DayOfWeek.SUNDAY) {
+        if (DayOfWeek.SUNDAY.equals(date.getDayOfWeek())) {
             return Optional.empty();
         }
 
         LocalTime closingTime =
-                date.getDayOfWeek() == DayOfWeek.SATURDAY
+                DayOfWeek.SATURDAY.equals(date.getDayOfWeek())
                         ? SATURDAY_CLOSING_TIME
                         : WEEKDAY_CLOSING_TIME;
 

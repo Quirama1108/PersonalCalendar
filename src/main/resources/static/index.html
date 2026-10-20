@@ -80,7 +80,7 @@
         .spacer { flex: 1; }
         .nav { display: flex; gap: 6px; }
 
-        .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .segmented { display: inline-flex; margin: 0; padding: 0; min-width: 0; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
         .segmented button { border: 0; border-radius: 0; }
         .segmented button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
 
@@ -252,11 +252,11 @@
 
     <div class="spacer"></div>
 
-    <div class="segmented" role="group" aria-label="Vista">
+    <fieldset class="segmented" aria-label="Vista">
         <button type="button" data-view="month">Mes</button>
         <button type="button" data-view="week">Semana</button>
         <button type="button" data-view="day">Día</button>
-    </div>
+    </fieldset>
 
     <input class="search" id="search" type="search" placeholder="Buscar en el periodo…" aria-label="Buscar eventos">
 
@@ -346,9 +346,9 @@
     </form>
 </dialog>
 
-<div id="toast" role="status" aria-live="polite"></div>
+<output id="toast" aria-live="polite"></output>
 
-<script>
+<script type="module">
     // America/Bogota no usa horario de verano, así que el desfase es fijo.
     const ZONE_OFFSET = "-05:00";
     const OFFSET_MS = -5 * 60 * 60 * 1000;
@@ -785,7 +785,7 @@
         const duration = Number($("duration").value);
         const list = $("slots");
 
-        if (!date || !(duration > 0)) {
+        if (!date || Number.isNaN(duration) || duration <= 0) {
             toast("Indica una fecha y una duración mayor a cero.", true);
             return;
         }
@@ -834,7 +834,7 @@
     $("availabilityForm").onsubmit = findAvailability;
     $("availabilityDate").value = state.anchor;
 
-    refresh();
+    await refresh();
 </script>
 
 </body>

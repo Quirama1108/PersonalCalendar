@@ -75,9 +75,11 @@ sonar {
         property 'sonar.projectKey', System.getenv('SONAR_PROJECT_KEY') ?: 'Quirama1108_PersonalCalendar'
         property 'sonar.coverage.jacoco.xmlReportPaths',
                 "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
+        // Incluye la interfaz web (HTML/JS) además del código Java.
+        property 'sonar.sources', 'src/main/java,src/main/resources'
         // El benchmark JMH no es código de producción.
         property 'sonar.exclusions', 'src/jmh/**'
-        // Solo arranca Spring; su comportamiento se cubre con las pruebas de integración.
-        property 'sonar.coverage.exclusions', '**/CalendarApplication.java'
+        // main solo arranca Spring; la interfaz web no la mide JaCoCo (solo Java).
+        property 'sonar.coverage.exclusions', '**/CalendarApplication.java,src/main/resources/**'
     }
 }
