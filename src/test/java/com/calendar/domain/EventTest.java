@@ -140,4 +140,55 @@ class EventTest {
         // Assert
         assertFalse(overlaps);
     }
+
+    private static final Instant START = Instant.parse("2026-08-24T14:00:00Z");
+    private static final Instant END = Instant.parse("2026-08-24T15:00:00Z");
+
+    @Test
+    void shouldRejectBlankOrMissingTitle() {
+
+        // Act + Assert
+        assertThrows(IllegalArgumentException.class,
+                () -> new Event(UUID.randomUUID(), "   ", START, END));
+        assertThrows(IllegalArgumentException.class,
+                () -> new Event(UUID.randomUUID(), null, START, END));
+    }
+
+    @Test
+    void shouldTrimTitleAndDescriptionAndDefaultDescriptionToEmpty() {
+
+        // Act
+        Event withDescription = new Event(
+                UUID.randomUUID(), "  Demo  ", "  Sala 2  ", START, END
+        );
+        Event withoutDescription = new Event(
+                UUID.randomUUID(), "Demo", null, START, END
+        );
+
+        // Assert
+        assertEquals("Demo", withDescription.getTitle());
+        assertEquals("Sala 2", withDescription.getDescription());
+        assertEquals("", withoutDescription.getDescription());
+    }
+
+    @Test
+    void shouldRejectTitleOrDescriptionAboveMaximumLength() {
+
+        // Arrange
+        String longTitle = "a".repeat(Event.MAX_TITLE_LENGTH + 1);
+        String longDescription = "a".repeat(Event.MAX_DESCRIPTION_LENGTH + 1);
+
+        // Act + Assert
+        assertThrows(IllegalArgumentException.class,
+                () -> new Event(UUID.randomUUID(), longTitle, START, END));
+        assertThrows(IllegalArgumentException.class,
+                () -> new Event(UUID.randomUUID(), "Demo", longDescription, START, END));
+        assertDoesNotThrow(() -> new Event(
+                UUID.randomUUID(),
+                "a".repeat(Event.MAX_TITLE_LENGTH),
+                "a".repeat(Event.MAX_DESCRIPTION_LENGTH),
+                START,
+                END
+        ));
+    }
 }

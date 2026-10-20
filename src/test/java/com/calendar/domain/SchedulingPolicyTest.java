@@ -100,4 +100,26 @@ class SchedulingPolicyTest {
         // Assert
         assertFalse(allowed);
     }
+
+    @Test
+    void shouldAllowEventThatFillsTheWholeWorkday() {
+
+        // Arrange
+        Instant start = Instant.parse("2026-08-24T14:00:00Z"); // 09:00 Colombia
+        Instant end = Instant.parse("2026-08-24T22:00:00Z");   // 17:00 Colombia
+
+        // Act + Assert
+        assertTrue(policy.isAllowed(start, end));
+    }
+
+    @Test
+    void shouldRejectEventStartingOneMinuteBeforeOpening() {
+
+        // Arrange
+        Instant start = Instant.parse("2026-08-24T13:59:00Z"); // 08:59 Colombia
+        Instant end = Instant.parse("2026-08-24T15:00:00Z");
+
+        // Act + Assert
+        assertFalse(policy.isAllowed(start, end));
+    }
 }

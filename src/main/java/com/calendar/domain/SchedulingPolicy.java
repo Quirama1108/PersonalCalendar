@@ -5,39 +5,20 @@ import java.util.Optional;
 
 public class SchedulingPolicy {
 
-    private static final ZoneId ZONE = ZoneId.of("America/Bogota");
+    public static final ZoneId ZONE = ZoneId.of("America/Bogota");
 
     private static final LocalTime OPENING_TIME = LocalTime.of(9, 0);
     private static final LocalTime WEEKDAY_CLOSING_TIME = LocalTime.of(17, 0);
     private static final LocalTime SATURDAY_CLOSING_TIME = LocalTime.of(16, 0);
 
     public boolean isAllowed(Instant start, Instant end) {
-        ZonedDateTime localStart = start.atZone(ZONE);
-        ZonedDateTime localEnd = end.atZone(ZONE);
+        LocalDate localDate = start.atZone(ZONE).toLocalDate();
 
-        if (!localStart.toLocalDate().equals(localEnd.toLocalDate())) {
-            return false;
-        }
-
-        DayOfWeek day = localStart.getDayOfWeek();
-
-        if (day == DayOfWeek.SUNDAY) {
-            return false;
-        }
-
-        LocalTime startTime = localStart.toLocalTime();
-        LocalTime endTime = localEnd.toLocalTime();
-
-        if (startTime.isBefore(OPENING_TIME)) {
-            return false;
-        }
-
-        LocalTime closingTime =
-                day == DayOfWeek.SATURDAY
-                        ? SATURDAY_CLOSING_TIME
-                        : WEEKDAY_CLOSING_TIME;
-
-        return !endTime.isAfter(closingTime);
+        // Un evento que cruza al día siguiente termina después del cierre, por eso queda rechazado.
+        return availabilityFor(localDate)
+                .map(hours -> !start.isBefore(hours.start())
+                        && !end.isAfter(hours.end()))
+                .orElse(false);
     }
 
     public Optional<TimeSlot> availabilityFor(LocalDate date) {

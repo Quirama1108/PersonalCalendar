@@ -24,62 +24,48 @@ public class AvailabilityCalculator {
             );
         }
 
-        List<Event> sortedEvents = events.stream()
+        List<TimeSlot> availableSlots = new ArrayList<>();
+        Instant cursor = searchWindow.start();
+
+        // Los eventos se recorren en orden; el cursor marca hasta dónde está ocupado.
+        for (Event event : eventsWithin(searchWindow, events)) {
+            addIfFits(availableSlots, cursor, event.getStart(), requiredDuration);
+            cursor = latest(cursor, event.getEnd());
+        }
+
+        addIfFits(availableSlots, cursor, searchWindow.end(), requiredDuration);
+
+        return availableSlots;
+    }
+
+    private static List<Event> eventsWithin(TimeSlot window, List<Event> events) {
+        return events.stream()
                 .filter(event ->
-                        event.getStart().isBefore(searchWindow.end())
-                                && event.getEnd().isAfter(searchWindow.start())
+                        event.getStart().isBefore(window.end())
+                                && event.getEnd().isAfter(window.start())
                 )
                 .sorted(Comparator.comparing(Event::getStart))
                 .toList();
+    }
 
-        List<TimeSlot> availableSlots = new ArrayList<>();
-
-        Instant cursor = searchWindow.start();
-
-        for (Event event : sortedEvents) {
-
-            Instant eventStart =
-                    event.getStart().isBefore(searchWindow.start())
-                            ? searchWindow.start()
-                            : event.getStart();
-
-            Instant eventEnd =
-                    event.getEnd().isAfter(searchWindow.end())
-                            ? searchWindow.end()
-                            : event.getEnd();
-
-            if (!eventEnd.isAfter(cursor)) {
-                continue;
-            }
-
-            if (cursor.isBefore(eventStart)) {
-
-                TimeSlot freeSlot = new TimeSlot(cursor, eventStart);
-
-                if (freeSlot.canFit(requiredDuration)) {
-                    availableSlots.add(freeSlot);
-                }
-            }
-
-            if (eventEnd.isAfter(cursor)) {
-                cursor = eventEnd;
-            }
-
-            if (!cursor.isBefore(searchWindow.end())) {
-                break;
-            }
+    private static void addIfFits(
+            List<TimeSlot> slots,
+            Instant from,
+            Instant to,
+            Duration requiredDuration
+    ) {
+        if (!from.isBefore(to)) {
+            return;
         }
 
-        if (cursor.isBefore(searchWindow.end())) {
+        TimeSlot gap = new TimeSlot(from, to);
 
-            TimeSlot freeSlot =
-                    new TimeSlot(cursor, searchWindow.end());
-
-            if (freeSlot.canFit(requiredDuration)) {
-                availableSlots.add(freeSlot);
-            }
+        if (gap.canFit(requiredDuration)) {
+            slots.add(gap);
         }
+    }
 
-        return availableSlots;
+    private static Instant latest(Instant first, Instant second) {
+        return first.isAfter(second) ? first : second;
     }
 }

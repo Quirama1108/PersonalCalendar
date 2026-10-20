@@ -6,6 +6,7 @@ import java.util.UUID;
 public record EventResponse(
         UUID id,
         String title,
+        String description,
         OffsetDateTime start,
         OffsetDateTime end
 ) {

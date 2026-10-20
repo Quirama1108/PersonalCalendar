@@ -10,14 +10,16 @@ Aunque la aplicación es pequeña, quise aprovecharla para trabajar conceptos qu
 
 Actualmente la aplicación permite:
 
-* Crear eventos.
+* Crear eventos con título, descripción opcional, fecha y horario.
 * Consultar eventos dentro de un rango de fechas.
 * Actualizar eventos.
-* Eliminar eventos.
+* Eliminar eventos (con confirmación desde la interfaz).
 * Consultar espacios disponibles para una fecha.
 * Detectar conflictos entre eventos.
 
-También incluye una interfaz web sencilla para poder probar el funcionamiento sin depender únicamente de Postman o PowerShell.
+También incluye una interfaz gráfica web (vistas de mes, semana y día, búsqueda, formularios de creación y edición) para usar el calendario sin depender de Postman o PowerShell.
+
+> La documentación de calidad de software (SonarCloud, JaCoCo, complejidad, Quality Gate y Quality Profile) está en [`docs/calidad/`](docs/calidad/).
 
 ## Reglas del calendario
 
@@ -252,10 +254,13 @@ POST /events
 ```json
 {
   "title": "Technical interview",
+  "description": "Opcional, máximo 500 caracteres",
   "start": "2026-08-24T09:00:00-05:00",
   "end": "2026-08-24T10:00:00-05:00"
 }
 ```
+
+El título es obligatorio (máximo 100 caracteres). Si falta el título, el inicio o el fin, la API responde `400` con código `INVALID_REQUEST`.
 
 ### Consultar eventos
 
@@ -452,17 +457,18 @@ Para ejecutarlo:
 
 ## Interfaz web
 
-También agregué una interfaz muy sencilla con HTML, CSS y JavaScript.
+La interfaz está hecha con HTML, CSS y JavaScript sin frameworks (`src/main/resources/static/index.html`) y la sirve el mismo Spring Boot. Consume la API real; no tiene datos simulados.
 
-No utilicé React, Angular o algún framework similar porque el objetivo de la prueba está principalmente en el backend.
+No utilicé React, Angular o algún framework similar porque una sola página es suficiente y no agrega dependencias ni un segundo proceso de build.
 
-La interfaz simplemente permite probar visualmente:
+Permite:
 
-* creación de eventos;
-* consulta;
-* eliminación;
-* disponibilidad;
-* errores del negocio.
+* ver el calendario por mes, semana o día y navegar entre periodos;
+* crear un evento haciendo clic en un día u hora libre, o con **+ Nuevo evento**;
+* ver el detalle de un evento, editarlo o eliminarlo (con confirmación);
+* buscar por título o descripción dentro del periodo visible;
+* buscar espacios disponibles y crear un evento directamente en uno de ellos;
+* ver mensajes claros en español para errores de validación, conflictos y horarios no permitidos.
 
 Está disponible automáticamente al ejecutar la aplicación en:
 
@@ -478,11 +484,13 @@ Levantar la aplicación:
 .\gradlew bootRun
 ```
 
-Ejecutar pruebas:
+Ejecutar pruebas (genera también el reporte de cobertura JaCoCo en `build/reports/jacoco/test/html/index.html`):
 
 ```powershell
 .\gradlew clean test
 ```
+
+> `gradlew` usa el JDK de `JAVA_HOME` (debe ser Java 21). Si `java -version` muestra otra versión, no ejecutes el jar con ese `java`.
 
 Ejecutar benchmarks:
 

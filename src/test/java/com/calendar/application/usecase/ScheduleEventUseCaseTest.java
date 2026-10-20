@@ -115,4 +115,52 @@ class ScheduleEventUseCaseTest {
 
         assertEquals(1, repository.findAll().size());
     }
+
+    @Test
+    void shouldStoreDescription() {
+
+        // Arrange
+        InMemoryEventRepository repository = new InMemoryEventRepository();
+        ScheduleEventUseCase useCase = new ScheduleEventUseCase(
+                repository,
+                new SchedulingPolicy()
+        );
+
+        // Act
+        Event result = useCase.execute(
+                "Sprint review",
+                "Traer la demo",
+                Instant.parse("2026-08-24T14:00:00Z"),
+                Instant.parse("2026-08-24T15:00:00Z")
+        );
+
+        // Assert
+        assertEquals("Traer la demo", result.getDescription());
+        assertEquals(
+                "Traer la demo",
+                repository.findById(result.getId()).orElseThrow().getDescription()
+        );
+    }
+
+    @Test
+    void shouldNotSaveEventWithBlankTitle() {
+
+        // Arrange
+        InMemoryEventRepository repository = new InMemoryEventRepository();
+        ScheduleEventUseCase useCase = new ScheduleEventUseCase(
+                repository,
+                new SchedulingPolicy()
+        );
+
+        // Act + Assert
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> useCase.execute(
+                        " ",
+                        Instant.parse("2026-08-24T14:00:00Z"),
+                        Instant.parse("2026-08-24T15:00:00Z")
+                )
+        );
+        assertTrue(repository.findAll().isEmpty());
+    }
 }

@@ -1,0 +1,46 @@
+name: Build, pruebas y SonarCloud
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # SonarCloud necesita el historial completo para distinguir código nuevo.
+          fetch-depth: 0
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      # gradlew está versionado sin permiso de ejecución.
+      - run: chmod +x gradlew
+
+      # Compila, ejecuta pruebas, genera JaCoCo (HTML + XML) y el reporte PMD de complejidad.
+      - run: ./gradlew build
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reportes
+          path: |
+            build/reports/jacoco/test/
+            build/reports/tests/test/
+            build/reports/pmd/
+
+      # Solo corre si el repositorio tiene el secreto SONAR_TOKEN configurado.
+      - name: Análisis SonarCloud
+        if: ${{ env.SONAR_TOKEN != '' }}
+        run: ./gradlew sonar -Dsonar.qualitygate.wait=true

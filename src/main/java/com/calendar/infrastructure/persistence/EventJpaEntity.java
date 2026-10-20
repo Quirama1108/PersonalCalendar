@@ -18,6 +18,10 @@ public class EventJpaEntity {
     @Column(nullable = false)
     private String title;
 
+    // Nullable para que ddl-auto=update pueda agregar la columna a filas existentes.
+    @Column(length = 500)
+    private String description;
+
     @Column(name = "start_time", nullable = false)
     private Instant start;
 
@@ -31,11 +35,13 @@ public class EventJpaEntity {
     public EventJpaEntity(
             UUID id,
             String title,
+            String description,
             Instant start,
             Instant end
     ) {
         this.id = id;
         this.title = title;
+        this.description = description;
         this.start = start;
         this.end = end;
     }
@@ -46,6 +52,10 @@ public class EventJpaEntity {
 
     public String getTitle() {
         return title;
+    }
+
+    public String getDescription() {
+        return description;
     }
 
     public Instant getStart() {

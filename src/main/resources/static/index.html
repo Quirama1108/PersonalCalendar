@@ -3,494 +3,838 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <title>Personal Calendar</title>
+    <title>Calendario Personal</title>
 
     <style>
-        * {
-            box-sizing: border-box;
+        :root {
+            --bg: #f3f5f9;
+            --surface: #ffffff;
+            --border: #e2e6ee;
+            --text: #1d2433;
+            --muted: #6b7486;
+            --primary: #3056d3;
+            --primary-soft: #e8edfc;
+            --danger: #c0352b;
+            --success: #1f7a4d;
+            --closed: #f1f2f5;
+            --radius: 10px;
+            --hour: 48px;
         }
+
+        * { box-sizing: border-box; }
 
         body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
             margin: 0;
-            padding: 30px;
-            color: #222;
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+            background: var(--bg);
+            color: var(--text);
         }
 
-        .container {
-            max-width: 1000px;
-            margin: auto;
+        button, input, textarea, select { font: inherit; }
+
+        button {
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            border-radius: 8px;
+            padding: 8px 14px;
+            cursor: pointer;
         }
 
-        h1 {
-            margin-bottom: 5px;
+        button:hover { background: #f6f7fb; }
+        button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+            outline: 2px solid var(--primary);
+            outline-offset: 2px;
         }
 
-        .subtitle {
-            color: #666;
-            margin-bottom: 30px;
+        .primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+        .primary:hover { background: #2747b3; }
+        .danger { color: var(--danger); border-color: #f0c9c5; }
+        .danger:hover { background: #fdf1f0; }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 9px 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: var(--surface);
+            color: var(--text);
+        }
+
+        label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+
+        /* Layout */
+
+        header {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            background: var(--surface);
+            border-bottom: 1px solid var(--border);
+        }
+
+        header h1 { font-size: 20px; margin: 0 12px 0 0; }
+        .period { font-size: 18px; font-weight: 600; min-width: 200px; }
+        .spacer { flex: 1; }
+        .nav { display: flex; gap: 6px; }
+
+        .segmented { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+        .segmented button { border: 0; border-radius: 0; }
+        .segmented button[aria-pressed="true"] { background: var(--primary-soft); color: var(--primary); font-weight: 600; }
+
+        .search { width: 220px; }
+
+        main {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) 300px;
+            gap: 16px;
+            padding: 16px 20px;
         }
 
         .card {
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 8px rgba(0,0,0,.08);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 16px;
         }
 
-        .grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 12px;
-        }
+        aside { display: flex; flex-direction: column; gap: 16px; }
+        aside h2 { font-size: 15px; margin: 0 0 12px; }
+        .hint { font-size: 13px; color: var(--muted); margin: 0; line-height: 1.5; }
 
-        input {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ccc;
-            border-radius: 6px;
-        }
+        /* Month view */
 
-        button {
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
+        .month { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+        .weekday { padding: 8px; font-size: 12px; color: var(--muted); text-transform: uppercase; font-weight: 600; }
+
+        .day {
+            min-height: 108px;
+            border-top: 1px solid var(--border);
+            border-left: 1px solid var(--border);
+            padding: 4px;
             cursor: pointer;
-            background: #222;
-            color: white;
+            overflow: hidden;
         }
 
-        button:hover {
-            opacity: .85;
+        .day:nth-child(7n + 1) { border-left: 0; }
+        .day.other { background: #fafbfc; color: var(--muted); }
+        .day.closed { background: var(--closed); cursor: default; }
+
+        .day-number {
+            border: 0;
+            background: none;
+            padding: 2px 6px;
+            border-radius: 12px;
+            font-size: 13px;
         }
 
-        .danger {
-            background: #b3261e;
+        .day.today .day-number { background: var(--primary); color: #fff; }
+
+        .chip {
+            display: block;
+            width: 100%;
+            text-align: left;
+            margin-top: 3px;
+            padding: 2px 6px;
+            border: 0;
+            border-left: 3px solid var(--primary);
+            border-radius: 4px;
+            background: var(--primary-soft);
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
-        .event {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
+        .more { font-size: 12px; color: var(--muted); border: 0; background: none; padding: 2px 6px; }
 
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            gap: 15px;
+        /* Week / day view */
+
+        .tg { display: grid; }
+        .tg-head { font-size: 13px; text-align: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+        .tg-head.today strong { color: var(--primary); }
+        .tg-hours { position: relative; }
+        .tg-hours span { position: absolute; right: 6px; font-size: 11px; color: var(--muted); transform: translateY(-50%); }
+
+        .tg-col {
+            position: relative;
+            border-left: 1px solid var(--border);
+            cursor: pointer;
+            background-image: repeating-linear-gradient(
+                to bottom, transparent 0, transparent calc(var(--hour) - 1px), var(--border) calc(var(--hour) - 1px), var(--border) var(--hour)
+            );
         }
 
-        .event:last-child {
-            border-bottom: none;
-        }
+        .closed-band { position: absolute; left: 0; right: 0; background: var(--closed); opacity: .85; pointer-events: none; }
 
-        .event-title {
-            font-weight: bold;
-        }
-
-        .time {
-            color: #666;
-            font-size: 14px;
-            margin-top: 4px;
-        }
-
-        .slot {
-            padding: 10px;
-            background: #f0f4f8;
-            margin-top: 8px;
+        .block {
+            position: absolute;
+            left: 4px;
+            right: 4px;
+            padding: 3px 6px;
+            border: 0;
+            border-left: 3px solid var(--primary);
             border-radius: 6px;
+            background: var(--primary-soft);
+            font-size: 12px;
+            text-align: left;
+            overflow: hidden;
         }
 
-        #message {
-            margin-top: 15px;
-            font-weight: bold;
+        .block strong { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+        /* Lists */
+
+        .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+        .list button { width: 100%; text-align: left; }
+        .list small { display: block; color: var(--muted); }
+        .empty { color: var(--muted); font-size: 14px; }
+        .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+
+        /* Dialog */
+
+        dialog {
+            width: min(480px, calc(100vw - 32px));
+            border: 0;
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 20px 60px rgba(20, 30, 60, .25);
         }
 
-        .error {
-            color: #b3261e;
+        dialog::backdrop { background: rgba(20, 30, 60, .35); }
+        dialog h2 { margin: 0 0 16px; font-size: 18px; }
+        .field { margin-bottom: 12px; }
+        .actions { display: flex; gap: 8px; margin-top: 16px; }
+        .form-error { color: var(--danger); font-size: 14px; min-height: 1.2em; margin: 4px 0 0; }
+        .counter { font-size: 12px; color: var(--muted); text-align: right; }
+
+        /* Toast */
+
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 10px 18px;
+            border-radius: 8px;
+            color: #fff;
+            background: var(--success);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, .15);
+            display: none;
         }
 
-        .success {
-            color: #157347;
+        #toast.error { background: var(--danger); }
+        #toast.show { display: block; }
+
+        @media (max-width: 900px) {
+            main { grid-template-columns: 1fr; padding: 12px; }
+            .search { width: 100%; }
+            .day { min-height: 72px; }
+            .chip { font-size: 11px; }
         }
     </style>
 </head>
 
 <body>
 
-<div class="container">
+<header>
+    <h1>📅 Calendario</h1>
 
-    <h1>Personal Calendar</h1>
-    <div class="subtitle">
-        Calendar scheduling demo
+    <div class="nav">
+        <button type="button" id="prev" aria-label="Periodo anterior">‹</button>
+        <button type="button" id="today">Hoy</button>
+        <button type="button" id="next" aria-label="Periodo siguiente">›</button>
     </div>
 
-    <!-- CREATE EVENT -->
+    <div class="period" id="period" aria-live="polite"></div>
 
-    <div class="card">
+    <div class="spacer"></div>
 
-        <h2>Agendar evento</h2>
+    <div class="segmented" role="group" aria-label="Vista">
+        <button type="button" data-view="month">Mes</button>
+        <button type="button" data-view="week">Semana</button>
+        <button type="button" data-view="day">Día</button>
+    </div>
 
-        <div class="grid">
+    <input class="search" id="search" type="search" placeholder="Buscar en el periodo…" aria-label="Buscar eventos">
 
-            <div>
-                <label>Título</label>
-                <input id="title" placeholder="Reunión">
-            </div>
+    <button type="button" class="primary" id="newEvent">+ Nuevo evento</button>
+</header>
 
-            <div>
-                <label>Inicio</label>
-                <input id="start" type="datetime-local">
-            </div>
+<main>
+    <section class="card" id="calendar" aria-label="Calendario"></section>
 
-            <div>
-                <label>Fin</label>
-                <input id="end" type="datetime-local">
-            </div>
-
+    <aside>
+        <div class="card">
+            <h2 id="listTitle">Eventos del periodo</h2>
+            <ul class="list" id="eventList"></ul>
         </div>
 
-        <br>
+        <div class="card">
+            <h2>Buscar disponibilidad</h2>
 
-        <button onclick="createEvent()">
-            Agendar
-        </button>
+            <form id="availabilityForm">
+                <div class="row">
+                    <div>
+                        <label for="availabilityDate">Fecha</label>
+                        <input id="availabilityDate" type="date" required>
+                    </div>
+                    <div>
+                        <label for="duration">Duración (min)</label>
+                        <input id="duration" type="number" min="1" max="480" value="60" required>
+                    </div>
+                </div>
+                <button type="submit">Buscar</button>
+            </form>
 
-        <div id="message"></div>
-
-    </div>
-
-
-    <!-- EVENTS -->
-
-    <div class="card">
-
-        <h2>Eventos</h2>
-
-        <div class="grid">
-
-            <div>
-                <label>Desde</label>
-                <input id="from" type="datetime-local">
-            </div>
-
-            <div>
-                <label>Hasta</label>
-                <input id="to" type="datetime-local">
-            </div>
-
+            <ul class="list" id="slots" style="margin-top: 12px"></ul>
         </div>
 
-        <br>
+        <div class="card">
+            <h2>Horario permitido</h2>
+            <p class="hint">
+                Lunes a viernes: 09:00 – 17:00<br>
+                Sábado: 09:00 – 16:00<br>
+                Domingo: cerrado<br>
+                Los eventos no pueden cruzarse entre sí (sí pueden ser consecutivos).
+            </p>
+        </div>
+    </aside>
+</main>
 
-        <button onclick="loadEvents()">
-            Consultar
-        </button>
+<dialog id="eventDialog" aria-labelledby="dialogTitle">
+    <form id="eventForm" novalidate>
+        <h2 id="dialogTitle">Nuevo evento</h2>
 
-        <div id="events"></div>
-
-    </div>
-
-
-    <!-- AVAILABILITY -->
-
-    <div class="card">
-
-        <h2>Consultar disponibilidad</h2>
-
-        <div class="grid">
-
-            <div>
-                <label>Fecha</label>
-                <input id="availabilityDate" type="date">
-            </div>
-
-            <div>
-                <label>Duración (minutos)</label>
-                <input
-                        id="duration"
-                        type="number"
-                        min="1"
-                        value="60"
-                >
-            </div>
-
+        <div class="field">
+            <label for="title">Título *</label>
+            <input id="title" maxlength="100" required>
         </div>
 
-        <br>
+        <div class="field">
+            <label for="description">Descripción</label>
+            <textarea id="description" rows="3" maxlength="500"></textarea>
+            <div class="counter" id="descriptionCounter"></div>
+        </div>
 
-        <button onclick="loadAvailability()">
-            Buscar disponibilidad
-        </button>
+        <div class="field">
+            <label for="date">Fecha *</label>
+            <input id="date" type="date" required>
+        </div>
 
-        <div id="availability"></div>
+        <div class="row">
+            <div>
+                <label for="start">Inicio *</label>
+                <input id="start" type="time" required>
+            </div>
+            <div>
+                <label for="end">Fin *</label>
+                <input id="end" type="time" required>
+            </div>
+        </div>
 
-    </div>
+        <p class="form-error" id="formError" role="alert"></p>
 
-</div>
+        <div class="actions">
+            <button type="button" class="danger" id="deleteEvent" hidden>Eliminar</button>
+            <div class="spacer"></div>
+            <button type="button" id="cancel">Cancelar</button>
+            <button type="submit" class="primary">Guardar</button>
+        </div>
+    </form>
+</dialog>
 
+<div id="toast" role="status" aria-live="polite"></div>
 
 <script>
+    // America/Bogota no usa horario de verano, así que el desfase es fijo.
+    const ZONE_OFFSET = "-05:00";
+    const OFFSET_MS = -5 * 60 * 60 * 1000;
 
-    const OFFSET = "-05:00";
+    // La rejilla se amplía si hay eventos guardados fuera de 08:00–18:00.
+    let GRID_START = 8 * 60;
+    let GRID_END = 18 * 60;
+    const HOUR_PX = 48;
+    const MAX_CHIPS = 3;
+    const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
 
-    function toOffsetDateTime(value) {
+    const ERROR_MESSAGES = {
+        EVENT_OVERLAP: "Ese horario se cruza con otro evento.",
+        OUTSIDE_SCHEDULING_HOURS: "Fuera del horario permitido (L-V 09:00–17:00, Sáb 09:00–16:00, domingo cerrado).",
+        EVENT_NOT_FOUND: "El evento ya no existe. Recarga el calendario."
+    };
 
-        if (!value) {
-            return null;
-        }
+    const state = { view: "month", anchor: todayStr(), events: [], query: "", editing: null };
 
-        return value + ":00" + OFFSET;
+    // ---------- Fechas (cadenas "YYYY-MM-DD" en hora de Bogotá) ----------
+
+    function localParts(iso) {
+        const shifted = new Date(Date.parse(iso) + OFFSET_MS).toISOString();
+        return { date: shifted.slice(0, 10), time: shifted.slice(11, 16) };
     }
 
+    function apiDateTime(date, time) {
+        return `${date}T${time}:00${ZONE_OFFSET}`;
+    }
 
-    async function createEvent() {
+    function dayDate(str) {
+        return new Date(str + "T00:00:00Z");
+    }
 
-        const message = document.getElementById("message");
+    function addDays(str, days) {
+        const d = dayDate(str);
+        d.setUTCDate(d.getUTCDate() + days);
+        return d.toISOString().slice(0, 10);
+    }
 
-        message.textContent = "";
+    function addMonths(str, months) {
+        const d = dayDate(str.slice(0, 8) + "01");
+        d.setUTCMonth(d.getUTCMonth() + months);
+        return d.toISOString().slice(0, 10);
+    }
 
-        const body = {
-            title: document.getElementById("title").value,
-            start: toOffsetDateTime(
-                document.getElementById("start").value
-            ),
-            end: toOffsetDateTime(
-                document.getElementById("end").value
-            )
-        };
+    function weekday(str) {
+        return (dayDate(str).getUTCDay() + 6) % 7; // 0 = lunes
+    }
+
+    function startOfWeek(str) {
+        return addDays(str, -weekday(str));
+    }
+
+    function todayStr() {
+        return localParts(new Date().toISOString()).date;
+    }
+
+    function toMinutes(time) {
+        const [h, m] = time.split(":").map(Number);
+        return h * 60 + m;
+    }
+
+    function hhmm(minutes) {
+        return String(Math.floor(minutes / 60)).padStart(2, "0") + ":" + String(minutes % 60).padStart(2, "0");
+    }
+
+    function format(str, options) {
+        return new Intl.DateTimeFormat("es-CO", { ...options, timeZone: "UTC" }).format(dayDate(str));
+    }
+
+    // Solo para sombrear la vista; la regla real la valida el servidor.
+    function closingMinutes(str) {
+        const wd = weekday(str);
+        if (wd === 6) return null;
+        return wd === 5 ? 16 * 60 : 17 * 60;
+    }
+
+    // ---------- DOM ----------
+
+    function el(tag, props = {}, ...children) {
+        const node = document.createElement(tag);
+        Object.assign(node, props);
+        node.append(...children);
+        return node;
+    }
+
+    function $(id) {
+        return document.getElementById(id);
+    }
+
+    let toastTimer;
+    function toast(message, isError = false) {
+        const box = $("toast");
+        box.textContent = message;
+        box.className = "show" + (isError ? " error" : "");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => box.className = "", 3500);
+    }
+
+    // ---------- API ----------
+
+    async function api(url, options = {}) {
+        let response;
+        try {
+            response = await fetch(url, {
+                headers: { "Content-Type": "application/json" },
+                ...options
+            });
+        } catch {
+            throw new Error("No fue posible conectar con el servidor.");
+        }
+
+        if (response.ok) {
+            return response.status === 204 ? null : response.json();
+        }
+
+        const error = await response.json().catch(() => ({}));
+        throw new Error(ERROR_MESSAGES[error.code] || ("Datos inválidos: " + (error.message || error.detail || response.status)));
+    }
+
+    // ---------- Rango visible ----------
+
+    function visibleRange() {
+        if (state.view === "month") {
+            return { start: startOfWeek(state.anchor.slice(0, 8) + "01"), days: 42 };
+        }
+        if (state.view === "week") {
+            return { start: startOfWeek(state.anchor), days: 7 };
+        }
+        return { start: state.anchor, days: 1 };
+    }
+
+    function periodLabel() {
+        if (state.view === "month") {
+            return format(state.anchor, { month: "long", year: "numeric" });
+        }
+        if (state.view === "week") {
+            const start = startOfWeek(state.anchor);
+            return `${format(start, { day: "numeric", month: "short" })} – ${format(addDays(start, 6), { day: "numeric", month: "short", year: "numeric" })}`;
+        }
+        return format(state.anchor, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+    }
+
+    async function refresh() {
+        const { start, days } = visibleRange();
+        const from = apiDateTime(start, "00:00");
+        const to = apiDateTime(addDays(start, days), "00:00");
 
         try {
+            const events = await api(`/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`);
+            state.events = events.map(event => {
+                const s = localParts(event.start);
+                return { ...event, date: s.date, from: s.time, to: localParts(event.end).time };
+            });
+        } catch (error) {
+            state.events = [];
+            toast(error.message, true);
+        }
 
-            const response = await fetch("/events", {
-                method: "POST",
+        render();
+    }
 
-                headers: {
-                    "Content-Type": "application/json"
-                },
+    // ---------- Render ----------
 
-                body: JSON.stringify(body)
+    function normalize(text) {
+        return text.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+    }
+
+    function filteredEvents() {
+        const query = normalize(state.query.trim());
+        if (!query) return state.events;
+        return state.events.filter(e => normalize(e.title + " " + (e.description || "")).includes(query));
+    }
+
+    function eventsOn(date, events) {
+        return events.filter(e => e.date === date);
+    }
+
+    function render() {
+        const label = periodLabel();
+        $("period").textContent = label.charAt(0).toUpperCase() + label.slice(1);
+        document.querySelectorAll("[data-view]").forEach(b => b.setAttribute("aria-pressed", b.dataset.view === state.view));
+
+        const events = filteredEvents();
+        const calendar = $("calendar");
+        calendar.replaceChildren(state.view === "month" ? renderMonth(events) : renderTimeGrid(events));
+        renderList(events);
+    }
+
+    function renderMonth(events) {
+        const grid = el("div", { className: "month" });
+        WEEKDAYS.forEach(name => grid.append(el("div", { className: "weekday" }, name)));
+
+        const { start } = visibleRange();
+        const month = state.anchor.slice(0, 7);
+        const today = todayStr();
+
+        for (let i = 0; i < 42; i++) {
+            const date = addDays(start, i);
+            const closed = closingMinutes(date) === null;
+            const cell = el("div", {
+                className: "day" + (date.slice(0, 7) !== month ? " other" : "") + (closed ? " closed" : "") + (date === today ? " today" : "")
             });
 
+            cell.append(el("button", {
+                type: "button",
+                className: "day-number",
+                textContent: Number(date.slice(8)),
+                ariaLabel: format(date, { weekday: "long", day: "numeric", month: "long" }),
+                onclick: e => { e.stopPropagation(); goToDay(date); }
+            }));
 
-            if (!response.ok) {
+            const dayEvents = eventsOn(date, events);
+            dayEvents.slice(0, MAX_CHIPS).forEach(event => cell.append(eventButton(event, "chip", `${event.from} ${event.title}`)));
 
-                const error = await response.json();
+            if (dayEvents.length > MAX_CHIPS) {
+                cell.append(el("button", {
+                    type: "button",
+                    className: "more",
+                    textContent: `+${dayEvents.length - MAX_CHIPS} más`,
+                    onclick: e => { e.stopPropagation(); goToDay(date); }
+                }));
+            }
 
-                message.className = "error";
-                message.textContent = error.message;
+            if (!closed) {
+                cell.onclick = () => openEditor(null, { date, from: "09:00", to: "10:00" });
+            }
 
+            grid.append(cell);
+        }
+
+        return grid;
+    }
+
+    function renderTimeGrid(events) {
+        const { start, days } = visibleRange();
+        GRID_START = Math.min(8 * 60, ...events.map(e => Math.floor(toMinutes(e.from) / 60) * 60));
+        GRID_END = Math.max(18 * 60, ...events.map(e => Math.ceil(toMinutes(e.to) / 60) * 60));
+        const height = (GRID_END - GRID_START) / 60 * HOUR_PX;
+        const today = todayStr();
+
+        const grid = el("div", { className: "tg" });
+        grid.style.gridTemplateColumns = `56px repeat(${days}, minmax(0, 1fr))`;
+
+        grid.append(el("div"));
+        for (let i = 0; i < days; i++) {
+            const date = addDays(start, i);
+            grid.append(el("div", { className: "tg-head" + (date === today ? " today" : "") },
+                WEEKDAYS[weekday(date)] + " ", el("strong", { textContent: Number(date.slice(8)) })));
+        }
+
+        const hours = el("div", { className: "tg-hours" });
+        hours.style.height = height + "px";
+        for (let m = GRID_START + 60; m < GRID_END; m += 60) {
+            const label = el("span", { textContent: hhmm(m) });
+            label.style.top = (m - GRID_START) / 60 * HOUR_PX + "px";
+            hours.append(label);
+        }
+        grid.append(hours);
+
+        for (let i = 0; i < days; i++) {
+            grid.append(renderDayColumn(addDays(start, i), events, height));
+        }
+
+        return grid;
+    }
+
+    function renderDayColumn(date, events, height) {
+        const column = el("div", { className: "tg-col" });
+        column.style.height = height + "px";
+
+        const closing = closingMinutes(date);
+        const bands = closing === null
+            ? [[GRID_START, GRID_END]]
+            : [[GRID_START, 9 * 60], [closing, GRID_END]];
+        bands.forEach(([from, to]) => column.append(band(from, to)));
+
+        eventsOn(date, events).forEach(event => {
+            const block = eventButton(event, "block", el("strong", { textContent: event.title }), `${event.from} – ${event.to}`);
+            block.style.top = position(toMinutes(event.from)) + "px";
+            block.style.height = Math.max(position(toMinutes(event.to)) - position(toMinutes(event.from)) - 2, 18) + "px";
+            column.append(block);
+        });
+
+        if (closing !== null) {
+            column.onclick = e => {
+                const y = e.clientY - column.getBoundingClientRect().top;
+                const from = GRID_START + Math.floor(y / HOUR_PX) * 60;
+                openEditor(null, { date, from: hhmm(from), to: hhmm(from + 60) });
+            };
+        }
+
+        return column;
+    }
+
+    function position(minutes) {
+        return (minutes - GRID_START) / 60 * HOUR_PX;
+    }
+
+    function band(from, to) {
+        const node = el("div", { className: "closed-band" });
+        node.style.top = position(from) + "px";
+        node.style.height = position(to) - position(from) + "px";
+        return node;
+    }
+
+    function eventButton(event, className, ...content) {
+        return el("button", {
+            type: "button",
+            className,
+            title: `${event.title}\n${event.from} – ${event.to}${event.description ? "\n" + event.description : ""}`,
+            onclick: e => { e.stopPropagation(); openEditor(event); }
+        }, ...content);
+    }
+
+    function renderList(events) {
+        $("listTitle").textContent = state.query.trim()
+            ? `Resultados (${events.length})`
+            : `Eventos del periodo (${events.length})`;
+
+        const list = $("eventList");
+        list.replaceChildren();
+
+        if (events.length === 0) {
+            list.append(el("li", { className: "empty", textContent: "No hay eventos." }));
+            return;
+        }
+
+        events.forEach(event => list.append(el("li", {},
+            eventButton(event, "", event.title,
+                el("small", { textContent: `${format(event.date, { weekday: "short", day: "numeric", month: "short" })} · ${event.from} – ${event.to}` })))));
+    }
+
+    // ---------- Navegación ----------
+
+    function move(direction) {
+        if (state.view === "month") state.anchor = addMonths(state.anchor, direction);
+        else state.anchor = addDays(state.anchor, direction * (state.view === "week" ? 7 : 1));
+        refresh();
+    }
+
+    function goToDay(date) {
+        state.view = "day";
+        state.anchor = date;
+        refresh();
+    }
+
+    // ---------- Formulario de evento ----------
+
+    function openEditor(event, defaults = {}) {
+        const values = event || defaults;
+        state.editing = event;
+
+        $("dialogTitle").textContent = event ? "Detalle del evento" : "Nuevo evento";
+        $("title").value = event ? event.title : "";
+        $("description").value = event ? (event.description || "") : "";
+        $("date").value = values.date || state.anchor;
+        $("start").value = values.from || "09:00";
+        $("end").value = values.to || "10:00";
+        $("deleteEvent").hidden = !event;
+        $("formError").textContent = "";
+        updateCounter();
+
+        $("eventDialog").showModal();
+        $("title").focus();
+    }
+
+    function validateForm() {
+        const title = $("title").value.trim();
+        if (!title) return "El título es obligatorio.";
+        if (title.length > 100) return "El título no puede superar 100 caracteres.";
+        if ($("description").value.trim().length > 500) return "La descripción no puede superar 500 caracteres.";
+        if (!$("date").value || !$("start").value || !$("end").value) return "La fecha, la hora de inicio y la hora de fin son obligatorias.";
+        if ($("end").value <= $("start").value) return "La hora de fin debe ser posterior a la de inicio.";
+        return null;
+    }
+
+    async function saveEvent(e) {
+        e.preventDefault();
+
+        const problem = validateForm();
+        if (problem) {
+            $("formError").textContent = problem;
+            return;
+        }
+
+        const date = $("date").value;
+        const body = JSON.stringify({
+            title: $("title").value.trim(),
+            description: $("description").value.trim(),
+            start: apiDateTime(date, $("start").value),
+            end: apiDateTime(date, $("end").value)
+        });
+
+        try {
+            const editing = state.editing;
+            await api(editing ? `/events/${editing.id}` : "/events", { method: editing ? "PUT" : "POST", body });
+            $("eventDialog").close();
+            toast(editing ? "Evento actualizado." : "Evento creado.");
+            state.anchor = date;
+            await refresh();
+            refreshAvailabilityIfShown();
+        } catch (error) {
+            $("formError").textContent = error.message;
+        }
+    }
+
+    async function deleteEvent() {
+        const event = state.editing;
+        if (!confirm(`¿Eliminar «${event.title}»? Esta acción no se puede deshacer.`)) return;
+
+        try {
+            await api(`/events/${event.id}`, { method: "DELETE" });
+            $("eventDialog").close();
+            toast("Evento eliminado.");
+            await refresh();
+            refreshAvailabilityIfShown();
+        } catch (error) {
+            $("formError").textContent = error.message;
+        }
+    }
+
+    function updateCounter() {
+        $("descriptionCounter").textContent = `${$("description").value.length}/500`;
+    }
+
+    // ---------- Disponibilidad ----------
+
+    async function findAvailability(e) {
+        if (e) e.preventDefault();
+
+        const date = $("availabilityDate").value;
+        const duration = Number($("duration").value);
+        const list = $("slots");
+
+        if (!date || !(duration > 0)) {
+            toast("Indica una fecha y una duración mayor a cero.", true);
+            return;
+        }
+
+        try {
+            const slots = await api(`/availability?date=${date}&durationMinutes=${duration}`);
+            list.replaceChildren();
+            list.dataset.shown = "true";
+
+            if (slots.length === 0) {
+                list.append(el("li", { className: "empty", textContent: "No hay espacios disponibles ese día." }));
                 return;
             }
 
-
-            const event = await response.json();
-
-            message.className = "success";
-
-            message.textContent =
-                "Evento creado: " + event.title;
-
-
-            await loadEvents();
-
-        } catch (error) {
-
-            message.className = "error";
-
-            message.textContent =
-                "No fue posible conectar con el servidor.";
-        }
-    }
-
-
-    async function loadEvents() {
-
-        const from =
-            toOffsetDateTime(
-                document.getElementById("from").value
-            );
-
-        const to =
-            toOffsetDateTime(
-                document.getElementById("to").value
-            );
-
-
-        if (!from || !to) {
-            return;
-        }
-
-
-        const url =
-            `/events?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`;
-
-
-        const response = await fetch(url);
-
-        const events = await response.json();
-
-        const container =
-            document.getElementById("events");
-
-
-        container.innerHTML = "";
-
-
-        if (events.length === 0) {
-
-            container.innerHTML =
-                "<p>No hay eventos en este rango.</p>";
-
-            return;
-        }
-
-
-        events.forEach(event => {
-
-            const element =
-                document.createElement("div");
-
-            element.className = "event";
-
-            element.innerHTML = `
-
-                <div>
-
-                    <div class="event-title">
-                        ${event.title}
-                    </div>
-
-                    <div class="time">
-                        ${formatDate(event.start)}
-                        →
-                        ${formatDate(event.end)}
-                    </div>
-
-                </div>
-
-                <button
-                    class="danger"
-                    onclick="deleteEvent('${event.id}')"
-                >
-                    Eliminar
-                </button>
-
-            `;
-
-            container.appendChild(element);
-        });
-    }
-
-
-    async function deleteEvent(id) {
-
-        const response =
-            await fetch(`/events/${id}`, {
-                method: "DELETE"
+            slots.forEach(slot => {
+                const from = localParts(slot.start).time;
+                const to = localParts(slot.end).time;
+                list.append(el("li", {}, el("button", {
+                    type: "button",
+                    textContent: `${from} – ${to}`,
+                    title: "Crear un evento en este espacio",
+                    onclick: () => openEditor(null, { date, from, to: hhmm(Math.min(toMinutes(from) + duration, toMinutes(to))) })
+                })));
             });
-
-
-        if (response.ok) {
-
-            await loadEvents();
-
-        } else {
-
-            alert("No fue posible eliminar el evento.");
+        } catch (error) {
+            toast(error.message, true);
         }
     }
 
-
-    async function loadAvailability() {
-
-        const date =
-            document.getElementById(
-                "availabilityDate"
-            ).value;
-
-        const duration =
-            document.getElementById(
-                "duration"
-            ).value;
-
-
-        const response = await fetch(
-            `/availability?date=${date}&durationMinutes=${duration}`
-        );
-
-
-        const slots = await response.json();
-
-        const container =
-            document.getElementById("availability");
-
-
-        container.innerHTML = "";
-
-
-        if (slots.length === 0) {
-
-            container.innerHTML =
-                "<p>No hay disponibilidad.</p>";
-
-            return;
-        }
-
-
-        slots.forEach(slot => {
-
-            const element =
-                document.createElement("div");
-
-            element.className = "slot";
-
-            element.textContent =
-                `${formatDate(slot.start)} → ${formatDate(slot.end)}`;
-
-            container.appendChild(element);
-        });
+    function refreshAvailabilityIfShown() {
+        if ($("slots").dataset.shown) findAvailability();
     }
 
+    // ---------- Inicio ----------
 
-    function formatDate(value) {
+    $("prev").onclick = () => move(-1);
+    $("next").onclick = () => move(1);
+    $("today").onclick = () => { state.anchor = todayStr(); refresh(); };
+    $("newEvent").onclick = () => openEditor(null, { date: state.anchor });
+    document.querySelectorAll("[data-view]").forEach(b => b.onclick = () => { state.view = b.dataset.view; refresh(); });
+    $("search").oninput = e => { state.query = e.target.value; render(); };
+    $("eventForm").onsubmit = saveEvent;
+    $("cancel").onclick = () => $("eventDialog").close();
+    $("deleteEvent").onclick = deleteEvent;
+    $("description").oninput = updateCounter;
+    $("availabilityForm").onsubmit = findAvailability;
+    $("availabilityDate").value = state.anchor;
 
-        return new Date(value)
-            .toLocaleString(
-                "es-CO",
-                {
-                    dateStyle: "short",
-                    timeStyle: "short"
-                }
-            );
-    }
-
-
-    function initializeDates() {
-
-        const date = "2026-08-24";
-
-        document.getElementById("start").value =
-            `${date}T09:00`;
-
-        document.getElementById("end").value =
-            `${date}T10:00`;
-
-        document.getElementById("from").value =
-            `${date}T09:00`;
-
-        document.getElementById("to").value =
-            `${date}T17:00`;
-
-        document.getElementById(
-            "availabilityDate"
-        ).value = date;
-    }
-
-
-    initializeDates();
-
+    refresh();
 </script>
 
 </body>

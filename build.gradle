@@ -3,6 +3,9 @@ plugins {
     id 'org.springframework.boot' version '4.1.0'
     id 'io.spring.dependency-management' version '1.1.7'
     id 'me.champeau.jmh' version '0.7.3'
+    id 'jacoco'
+    id 'pmd'
+    id 'org.sonarqube' version '6.2.0.5505'
 }
 
 group = 'com.calendar'
@@ -39,4 +42,42 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    finalizedBy jacocoTestReport
+}
+
+// Cobertura: build/reports/jacoco/test/html/index.html (HTML) y
+// build/reports/jacoco/test/jacocoTestReport.xml (XML que lee SonarCloud)
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        html.required = true
+    }
+}
+
+// PMD se usa solo para medir complejidad ciclomática y cognitiva en local
+// (umbrales bajos para que reporte todos los métodos); no rompe el build.
+pmd {
+    toolVersion = '7.13.0'
+    ruleSets = []
+    ruleSetFiles = files('config/pmd/complexity.xml')
+    ignoreFailures = true
+    consoleOutput = false
+}
+tasks.named('pmdTest') { enabled = false }
+tasks.matching { it.name == 'pmdJmh' }.configureEach { enabled = false }
+
+// Identificadores no secretos; el token se lee de la variable de entorno SONAR_TOKEN.
+sonar {
+    properties {
+        property 'sonar.host.url', 'https://sonarcloud.io'
+        property 'sonar.organization', System.getenv('SONAR_ORGANIZATION') ?: 'quirama1108'
+        property 'sonar.projectKey', System.getenv('SONAR_PROJECT_KEY') ?: 'Quirama1108_PersonalCalendar'
+        property 'sonar.coverage.jacoco.xmlReportPaths',
+                "${layout.buildDirectory.get()}/reports/jacoco/test/jacocoTestReport.xml"
+        // El benchmark JMH no es código de producción.
+        property 'sonar.exclusions', 'src/jmh/**'
+        // Solo arranca Spring; su comportamiento se cubre con las pruebas de integración.
+        property 'sonar.coverage.exclusions', '**/CalendarApplication.java'
+    }
 }

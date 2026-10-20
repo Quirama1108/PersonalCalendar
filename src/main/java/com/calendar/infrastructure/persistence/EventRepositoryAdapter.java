@@ -60,6 +60,7 @@ public class EventRepositoryAdapter implements EventRepository {
         return new EventJpaEntity(
                 event.getId(),
                 event.getTitle(),
+                event.getDescription(),
                 event.getStart(),
                 event.getEnd()
         );
@@ -69,6 +70,7 @@ public class EventRepositoryAdapter implements EventRepository {
         return new Event(
                 entity.getId(),
                 entity.getTitle(),
+                entity.getDescription(),
                 entity.getStart(),
                 entity.getEnd()
         );

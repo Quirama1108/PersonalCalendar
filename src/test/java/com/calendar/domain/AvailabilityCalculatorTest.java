@@ -8,6 +8,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 class AvailabilityCalculatorTest {
 
@@ -97,6 +98,134 @@ class AvailabilityCalculatorTest {
                         Instant.parse("2026-08-24T22:00:00Z")
                 ),
                 result.get(2)
+        );
+    }
+
+    private static final TimeSlot WINDOW = new TimeSlot(
+            Instant.parse("2026-08-24T14:00:00Z"),
+            Instant.parse("2026-08-24T22:00:00Z")
+    );
+
+    private static Event event(String start, String end) {
+        return new Event(
+                UUID.randomUUID(),
+                "Event",
+                Instant.parse("2026-08-24T" + start + ":00Z"),
+                Instant.parse("2026-08-24T" + end + ":00Z")
+        );
+    }
+
+    private static TimeSlot slot(String start, String end) {
+        return new TimeSlot(
+                Instant.parse("2026-08-24T" + start + ":00Z"),
+                Instant.parse("2026-08-24T" + end + ":00Z")
+        );
+    }
+
+    @Test
+    void shouldClipEventsThatStartBeforeOrEndAfterTheWindow() {
+
+        // Arrange
+        List<Event> events = List.of(
+                event("12:00", "15:00"),
+                event("21:00", "23:00")
+        );
+
+        // Act
+        List<TimeSlot> result = calculator.findAvailableSlots(
+                WINDOW, Duration.ofMinutes(60), events
+        );
+
+        // Assert
+        assertEquals(List.of(slot("15:00", "21:00")), result);
+    }
+
+    @Test
+    void shouldIgnoreEventsOutsideTheWindowAndUnsortedInput() {
+
+        // Arrange
+        List<Event> events = List.of(
+                event("18:00", "19:00"),
+                event("22:00", "23:00"),
+                event("10:00", "14:00"),
+                event("15:00", "16:00")
+        );
+
+        // Act
+        List<TimeSlot> result = calculator.findAvailableSlots(
+                WINDOW, Duration.ofMinutes(60), events
+        );
+
+        // Assert
+        assertEquals(
+                List.of(
+                        slot("14:00", "15:00"),
+                        slot("16:00", "18:00"),
+                        slot("19:00", "22:00")
+                ),
+                result
+        );
+    }
+
+    @Test
+    void shouldMergeOverlappingAndNestedEvents() {
+
+        // Arrange
+        List<Event> events = List.of(
+                event("15:00", "18:00"),
+                event("16:00", "17:00"),
+                event("17:30", "19:00")
+        );
+
+        // Act
+        List<TimeSlot> result = calculator.findAvailableSlots(
+                WINDOW, Duration.ofMinutes(60), events
+        );
+
+        // Assert
+        assertEquals(
+                List.of(slot("14:00", "15:00"), slot("19:00", "22:00")),
+                result
+        );
+    }
+
+    @Test
+    void shouldDiscardGapsShorterThanRequiredDuration() {
+
+        // Arrange
+        List<Event> events = List.of(
+                event("14:30", "15:00"),
+                event("15:45", "21:30")
+        );
+
+        // Act
+        List<TimeSlot> result = calculator.findAvailableSlots(
+                WINDOW, Duration.ofMinutes(60), events
+        );
+
+        // Assert
+        assertEquals(List.of(), result);
+    }
+
+    @Test
+    void shouldReturnNothingWhenWindowIsFullyBooked() {
+
+        // Act
+        List<TimeSlot> result = calculator.findAvailableSlots(
+                WINDOW, Duration.ofMinutes(15), List.of(event("13:00", "23:00"))
+        );
+
+        // Assert
+        assertEquals(List.of(), result);
+    }
+
+    @Test
+    void shouldRejectNonPositiveDuration() {
+
+        // Act + Assert
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> calculator.findAvailableSlots(WINDOW, Duration.ZERO, List.of())
         );
     }
 }

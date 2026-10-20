@@ -1,6 +1,7 @@
 package com.calendar.infrastructure.web;
 
 import com.calendar.application.usecase.FindAvailabilityUseCase;
+import com.calendar.domain.SchedulingPolicy;
 import com.calendar.infrastructure.web.dto.AvailabilityResponse;
 import org.springframework.web.bind.annotation.*;
 
@@ -13,8 +14,7 @@ import java.util.List;
 @RequestMapping("/availability")
 public class AvailabilityController {
 
-    private static final ZoneId ZONE =
-            ZoneId.of("America/Bogota");
+    private static final ZoneId ZONE = SchedulingPolicy.ZONE;
 
     private final FindAvailabilityUseCase findAvailabilityUseCase;
 

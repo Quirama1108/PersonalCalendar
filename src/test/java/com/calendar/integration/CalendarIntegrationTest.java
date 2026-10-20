@@ -262,4 +262,65 @@ class CalendarIntegrationTest {
                 .andExpect(jsonPath("$.code")
                         .value("OUTSIDE_SCHEDULING_HOURS"));
     }
+
+    @Test
+    void shouldPersistAndReturnDescription() throws Exception {
+
+        // Arrange
+        String request = """
+                {
+                    "title": "Daily",
+                    "description": "Sala virtual",
+                    "start": "2026-08-25T09:00:00-05:00",
+                    "end": "2026-08-25T09:30:00-05:00"
+                }
+                """;
+
+        // Act + Assert
+        mockMvc.perform(post("/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(request))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.description").value("Sala virtual"));
+
+        mockMvc.perform(get("/events")
+                        .param("from", "2026-08-25T00:00:00-05:00")
+                        .param("to", "2026-08-26T00:00:00-05:00"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$[0].description").value("Sala virtual"));
+    }
+
+    @Test
+    void shouldRejectRequestWithoutStartOrWithBlankTitle() throws Exception {
+
+        // Act + Assert
+        mockMvc.perform(post("/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                { "title": "Sin inicio", "end": "2026-08-24T10:00:00-05:00" }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+
+        mockMvc.perform(post("/events")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "title": "  ",
+                                    "start": "2026-08-24T09:00:00-05:00",
+                                    "end": "2026-08-24T10:00:00-05:00"
+                                }
+                                """))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.code").value("INVALID_REQUEST"));
+    }
+
+    @Test
+    void shouldReturnNotFoundWhenDeletingUnknownEvent() throws Exception {
+
+        // Act + Assert
+        mockMvc.perform(delete("/events/{id}", java.util.UUID.randomUUID()))
+                .andExpect(status().isNotFound())
+                .andExpect(jsonPath("$.code").value("EVENT_NOT_FOUND"));
+    }
 }

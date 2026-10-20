@@ -4,6 +4,7 @@ import java.time.OffsetDateTime;
 
 public record EventRequest(
         String title,
+        String description,
         OffsetDateTime start,
         OffsetDateTime end
 ) {

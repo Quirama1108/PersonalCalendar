@@ -210,4 +210,53 @@ class UpdateEventUseCaseTest {
         assertEquals("Renamed meeting", result.getTitle());
         assertEquals(1, repository.findAll().size());
     }
+
+    @Test
+    void shouldUpdateDescriptionAndKeepItWhenALaterChangeIsRejected() {
+
+        // Arrange
+        InMemoryEventRepository repository = new InMemoryEventRepository();
+        UUID id = UUID.randomUUID();
+        Event original = new Event(
+                id,
+                "Planning",
+                "Original",
+                Instant.parse("2026-08-24T14:00:00Z"),
+                Instant.parse("2026-08-24T15:00:00Z")
+        );
+        repository.save(original);
+
+        UpdateEventUseCase useCase = new UpdateEventUseCase(
+                repository,
+                new SchedulingPolicy()
+        );
+
+        // Act
+        Event updated = useCase.execute(
+                id,
+                "Planning",
+                "Nueva descripción",
+                original.getStart(),
+                original.getEnd()
+        );
+
+        // Assert
+        assertEquals("Nueva descripción", updated.getDescription());
+
+        // Act + Assert: un cambio inválido (domingo) no modifica lo guardado
+        assertThrows(
+                OutsideSchedulingHoursException.class,
+                () -> useCase.execute(
+                        id,
+                        "Planning",
+                        "Domingo",
+                        Instant.parse("2026-08-23T14:00:00Z"),
+                        Instant.parse("2026-08-23T15:00:00Z")
+                )
+        );
+        assertEquals(
+                "Nueva descripción",
+                repository.findById(id).orElseThrow().getDescription()
+        );
+    }
 }

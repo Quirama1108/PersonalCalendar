@@ -5,11 +5,13 @@ import com.calendar.application.usecase.GetEventsUseCase;
 import com.calendar.application.usecase.ScheduleEventUseCase;
 import com.calendar.application.usecase.UpdateEventUseCase;
 import com.calendar.domain.Event;
+import com.calendar.domain.SchedulingPolicy;
 import com.calendar.infrastructure.web.dto.EventRequest;
 import com.calendar.infrastructure.web.dto.EventResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -19,8 +21,7 @@ import java.util.UUID;
 @RequestMapping("/events")
 public class EventController {
 
-    private static final ZoneId ZONE =
-            ZoneId.of("America/Bogota");
+    private static final ZoneId ZONE = SchedulingPolicy.ZONE;
 
     private final ScheduleEventUseCase scheduleEventUseCase;
     private final GetEventsUseCase getEventsUseCase;
@@ -47,8 +48,9 @@ public class EventController {
 
         Event event = scheduleEventUseCase.execute(
                 request.title(),
-                request.start().toInstant(),
-                request.end().toInstant()
+                request.description(),
+                required(request.start(), "start"),
+                required(request.end(), "end")
         );
 
         return toResponse(event);
@@ -78,8 +80,9 @@ public class EventController {
         Event event = updateEventUseCase.execute(
                 id,
                 request.title(),
-                request.start().toInstant(),
-                request.end().toInstant()
+                request.description(),
+                required(request.start(), "start"),
+                required(request.end(), "end")
         );
 
         return toResponse(event);
@@ -93,11 +96,20 @@ public class EventController {
         deleteEventUseCase.execute(id);
     }
 
+    private static Instant required(OffsetDateTime value, String field) {
+        if (value == null) {
+            throw new IllegalArgumentException("Event " + field + " is required");
+        }
+
+        return value.toInstant();
+    }
+
     private EventResponse toResponse(Event event) {
 
         return new EventResponse(
                 event.getId(),
                 event.getTitle(),
+                event.getDescription(),
                 event.getStart()
                         .atZone(ZONE)
                         .toOffsetDateTime(),

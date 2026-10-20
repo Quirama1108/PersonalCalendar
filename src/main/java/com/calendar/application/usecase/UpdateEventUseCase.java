@@ -1,14 +1,11 @@
 package com.calendar.application.usecase;
 
 import com.calendar.application.exception.EventNotFoundException;
-import com.calendar.application.exception.EventOverlapException;
-import com.calendar.application.exception.OutsideSchedulingHoursException;
 import com.calendar.application.port.EventRepository;
 import com.calendar.domain.Event;
 import com.calendar.domain.SchedulingPolicy;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.UUID;
 
 public class UpdateEventUseCase {
@@ -30,6 +27,16 @@ public class UpdateEventUseCase {
             Instant start,
             Instant end
     ) {
+        return execute(id, title, "", start, end);
+    }
+
+    public Event execute(
+            UUID id,
+            String title,
+            String description,
+            Instant start,
+            Instant end
+    ) {
 
         Event existingEvent = eventRepository.findById(id)
                 .orElseThrow(EventNotFoundException::new);
@@ -37,24 +44,16 @@ public class UpdateEventUseCase {
         Event updatedEvent = new Event(
                 existingEvent.getId(),
                 title,
+                description,
                 start,
                 end
         );
 
-        if (!schedulingPolicy.isAllowed(start, end)) {
-            throw new OutsideSchedulingHoursException();
-        }
-
-        List<Event> conflictingEvents =
-                eventRepository.findBetween(start, end);
-
-        boolean hasConflict = conflictingEvents.stream()
-                .filter(event -> !event.getId().equals(id))
-                .anyMatch(event -> event.overlaps(updatedEvent));
-
-        if (hasConflict) {
-            throw new EventOverlapException();
-        }
+        SchedulingGuard.ensureCanBeScheduled(
+                updatedEvent,
+                schedulingPolicy,
+                eventRepository
+        );
 
         return eventRepository.save(updatedEvent);
     }
