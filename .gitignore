@@ -7,3 +7,5 @@ build/
 *.trace.db
 
 out/
+
+docs/

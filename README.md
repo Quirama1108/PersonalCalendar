@@ -19,8 +19,6 @@ Actualmente la aplicación permite:
 
 También incluye una interfaz gráfica web (vistas de mes, semana y día, búsqueda, formularios de creación y edición) para usar el calendario sin depender de Postman o PowerShell.
 
-> La documentación de calidad de software (SonarCloud, JaCoCo, complejidad, Quality Gate y Quality Profile) está en [`docs/calidad/`](docs/calidad/).
-
 ## Reglas del calendario
 
 El calendario tiene unas reglas bastante simples:
